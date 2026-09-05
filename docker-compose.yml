@@ -1,0 +1,26 @@
+services:
+  db:
+    image: ankane/pgvector:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ccrag
+      POSTGRES_PASSWORD: ccrag
+      POSTGRES_DB: ccrag
+    ports:
+      - "5432:5432"
+    volumes:
+      - ccrag_pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file: .env
+    ports:
+      - "5000:5000"
+    command: gunicorn -w 2 -b 0.0.0.0:5000 app.api.app:app
+
+volumes:
+  ccrag_pgdata:
