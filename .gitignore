@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+data/
+models/
+eval/raw_run_outputs.jsonl
+eval/judged_outputs.jsonl
+eval/results_table.md
+mlruns/
+.pytest_cache/
+*.egg-info/
