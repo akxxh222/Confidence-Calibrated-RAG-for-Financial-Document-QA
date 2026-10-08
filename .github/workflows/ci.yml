@@ -41,6 +41,9 @@ jobs:
     needs: docker-build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - name: Log in to registry
@@ -54,4 +57,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/akxxh222/confidence-calibrated-rag-for-financial-document-qa:latest
