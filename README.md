@@ -67,8 +67,15 @@ python -m venv .venv          # use an isolated environment
 python -m pip install -r requirements.txt
 docker compose up -d db       # postgres + pgvector only, for local dev
 python -m scripts.init_db     # creates tables from db/schema.sql (idempotent)
-python -m app.ingestion.edgar_fetch --tickers AAPL --forms 10-K --limit 1
+python -m app.ingestion.edgar_fetch --tickers AAPL MSFT --forms 10-K --limit 2
+python -m app.ingestion.edgar_fetch --tickers AAPL MSFT --forms 10-Q --limit 3
 python -m app.ingestion.html_extract --input data/raw_filings --out data/clean_text
-python -m scripts.ingest_sample --file data/clean_text/<filing>.txt --company AAPL
+python -m scripts.ingest_sample --root data/clean_text --raw_root data/raw_filings
 flask --app app.api.app run --debug
 ```
+
+Downloaded files are stored under
+`data/raw_filings/sec-edgar-filings/<ticker>/<form>/<accession>/`; both raw and
+extracted data are ignored by Git. Corpus ingestion reads fiscal periods and
+registrant CIKs from `full-submission.txt`, stores canonical SEC filing URLs,
+and safely skips source URLs that are already in the database.

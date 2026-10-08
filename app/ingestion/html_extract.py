@@ -43,7 +43,7 @@ def _table_to_lines(table) -> list[str]:
     return lines
 
 
-def extract_text(html: str) -> str:
+def extract_text(html: str | bytes) -> str:
     """Convert one EDGAR filing HTML document to clean plain text."""
     try:
         soup = BeautifulSoup(html, "lxml")
@@ -67,7 +67,10 @@ def extract_text(html: str) -> str:
 
 def extract_file(src: Path, out_dir: Path, root: Path | None = None) -> Path:
     """Extract one file, writing <stem>.txt under out_dir (mirroring layout)."""
-    text = extract_text(src.read_text(errors="ignore"))
+    # Pass bytes through so BeautifulSoup can honor the filing's declared
+    # encoding. Reading SEC HTML as UTF-8 first corrupts Windows-1252 smart
+    # quotes into replacement characters, which then breaks header matching.
+    text = extract_text(src.read_bytes())
     if root is not None:
         rel = src.relative_to(root)
         dest = out_dir / rel.with_suffix(".txt")

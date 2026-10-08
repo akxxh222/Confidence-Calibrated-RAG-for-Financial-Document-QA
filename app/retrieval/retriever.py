@@ -14,6 +14,10 @@ from db.connection import get_connection
 from app.retrieval.embed import embed_text
 
 TOP_K_DEFAULT = int(os.environ.get("TOP_K", "5"))  # TOP_K in .env; was previously hardcoded
+# The current schema has 100 IVFFlat lists. Probe all of them for this small
+# corpus so approximate search cannot select an empty list and return no rows.
+# This remains configurable for a later, substantially larger corpus.
+IVFFLAT_PROBES = int(os.environ.get("IVFFLAT_PROBES", "100"))
 
 
 @dataclass
@@ -46,6 +50,10 @@ def retrieve(query: str, top_k: int = TOP_K_DEFAULT) -> RetrievalResult:
     conn = get_connection()
     try:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT set_config('ivfflat.probes', %s, true);",
+                (str(IVFFLAT_PROBES),),
+            )
             cur.execute(sql, (query_vec, query_vec, top_k))
             rows = cur.fetchall()
     finally:

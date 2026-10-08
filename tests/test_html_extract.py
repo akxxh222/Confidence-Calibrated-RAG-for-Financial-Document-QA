@@ -1,4 +1,6 @@
-from app.ingestion.html_extract import extract_text
+from pathlib import Path
+
+from app.ingestion.html_extract import extract_file, extract_text
 
 HTML = """
 <html>
@@ -57,3 +59,15 @@ def test_no_lxml_fallback_needed_on_plain_html():
     # sanity: works when called repeatedly / on minimal documents
     assert extract_text("<p>hello world</p>") == "hello world"
     assert extract_text("") == ""
+
+
+def test_extract_file_lets_parser_detect_legacy_html_encoding(tmp_path: Path):
+    src = tmp_path / "filing.html"
+    src.write_bytes(
+        b'<html><head><meta charset="windows-1252"></head>'
+        b"<body>Management\x92s Discussion</body></html>"
+    )
+
+    dest = extract_file(src, tmp_path / "out")
+
+    assert dest.read_text(encoding="utf-8") == "Management’s Discussion"

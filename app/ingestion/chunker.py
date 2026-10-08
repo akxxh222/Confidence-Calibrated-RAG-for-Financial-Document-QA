@@ -10,20 +10,44 @@ known Item/section boundaries, then apply a secondary size-based split only
 import re
 from dataclasses import dataclass
 
-# Regexes matching common 10-K/10-Q Item headers. Real filings are messy;
-# this is a starting point to refine against actual downloaded HTML/text.
-# Known real-data issues to check on the first filing: table-of-contents lines
-# match the same patterns (creating short spurious sections), inline
-# cross-references to "notes to consolidated financial statements" can split
-# sections mid-body, and EDGAR HTML sometimes uses "Part II, Item 7" wording.
+
+# EDGAR sometimes inserts a newline inside a rendered word at a page boundary.
+def _broken_word(word: str) -> str:
+    return r"\s*".join(re.escape(char) for char in word)
+
+
+_FINANCIAL = _broken_word("financial")
+_STATEMENTS = _broken_word("statements")
+_REAL_HEADER = r"^[ \t]*(?![^\r\n]*\|)"
+
+
+# Match body headers at the start of a line. The negative lookahead excludes
+# pipe-delimited table-of-contents rows found in the downloaded AAPL/MSFT
+# filings, while the broken-word forms handle Microsoft page boundaries such
+# as "FINA\nNCIAL STATEMENTS".
 SECTION_PATTERNS = {
     # 10-K MD&A is Item 7; the 10-Q equivalent is Part I Item 2.
-    "MD&A": re.compile(r"item\s+(?:2|7)\.?\s+management'?s discussion", re.I),
+    "MD&A": re.compile(
+        _REAL_HEADER
+        + r"item[ \t]+(?:2|7)\.?[ \t]+management(?:['’\ufffd]?s)?[ \t]+discussion",
+        re.I | re.M,
+    ),
     # 10-K financial statements are Item 8; 10-Q Part I Item 1.
-    "financial_statements": re.compile(r"item\s+(?:1|8)\.?\s+financial statements", re.I),
-    "footnotes": re.compile(r"notes to (the )?consolidated financial statements", re.I),
+    "financial_statements": re.compile(
+        _REAL_HEADER
+        + rf"item[ \t]+(?:1|8)\.?[ \t]+{_FINANCIAL}\s+{_STATEMENTS}",
+        re.I | re.M,
+    ),
+    "footnotes": re.compile(
+        _REAL_HEADER
+        + rf"notes[ \t]+to[ \t]+(?:the[ \t]+)?(?:consolidated[ \t]+)?"
+          rf"{_FINANCIAL}\s+{_STATEMENTS}[ \t]*$",
+        re.I | re.M,
+    ),
     # 10-K only; without this its text gets absorbed into the MD&A section.
-    "market_risk": re.compile(r"item\s+7a\.?\s+quantitative", re.I),
+    "market_risk": re.compile(
+        _REAL_HEADER + r"item[ \t]+7a\.?[ \t]+quantitative", re.I | re.M
+    ),
     "qa_segment": re.compile(r"question-and-answer|q&a session", re.I),
 }
 

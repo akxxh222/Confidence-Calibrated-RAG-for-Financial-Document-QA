@@ -46,3 +46,41 @@ def test_document_without_headers_is_single_unlabeled_chunk():
 def test_empty_and_whitespace_inputs_produce_no_chunks():
     assert chunk_document("") == []
     assert chunk_document("   \n  ") == []
+
+
+def test_real_edgar_headers_handle_curly_apostrophes_and_split_words():
+    text = (
+        "Item 1. | Financial Statements | 1\n"
+        "Item 2. | Management’s Discussion and Analysis | 31\n"
+        "ITEM 1. FINA\nNCIAL STATEMENTS\nrevenue table\n"
+        "ITEM 2. MANAGEMENT’S DISCUSSION AND ANALYSIS OF\n"
+        "FINANCIAL CONDITION AND RESULTS OF OPERATIONS\nmanagement analysis\n"
+    )
+
+    sections = split_into_sections(text)
+
+    assert [label for label, _ in sections] == [
+        "unlabeled", "financial_statements", "MD&A"
+    ]
+    assert "revenue table" in sections[1][1]
+    assert "management analysis" in sections[2][1]
+
+
+def test_table_of_contents_headers_are_not_section_boundaries():
+    text = (
+        "Item 7. | Management’s Discussion and Analysis | 21\n"
+        "Item 8. | Financial Statements and Supplementary Data | 28\n"
+        "introductory material\n"
+        "Item 7. Management’s Discussion and Analysis\nbody mda\n"
+        "Item 8. Financial Statements and Supplementary Data\nbody statements\n"
+        "Notes to Consolidated Financial Statements\nbody notes\n"
+        "Notes to Financial Statements | 55\n"
+    )
+
+    sections = split_into_sections(text)
+
+    assert [label for label, _ in sections] == [
+        "unlabeled", "MD&A", "financial_statements", "footnotes"
+    ]
+    assert "introductory material" in sections[0][1]
+    assert "body notes" in sections[-1][1]

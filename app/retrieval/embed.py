@@ -20,11 +20,13 @@ The client is constructed lazily so importing this module never requires an
 API key (unit tests / CI import this chain without one).
 """
 import os
+import time
 from functools import lru_cache
 from math import sqrt
 
 from google import genai
 from google.genai import types
+from google.genai.errors import ClientError
 
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "gemini-embedding-2")
 EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "768"))
@@ -53,6 +55,31 @@ def _request_embeddings(texts: list[str]) -> list[list[float]]:
     return [_normalize(list(e.values)) for e in result.embeddings]
 
 
+def _quota_retry_delay(error: ClientError) -> float:
+    details = error.details.get("error", {}).get("details", [])
+    for detail in details:
+        retry_delay = detail.get("retryDelay", "")
+        if retry_delay.endswith("s"):
+            try:
+                return float(retry_delay[:-1]) + 1.0
+            except ValueError:
+                pass
+    return 61.0
+
+
+def _request_embeddings_with_retry(texts: list[str]) -> list[list[float]]:
+    for attempt in range(5):
+        try:
+            return _request_embeddings(texts)
+        except ClientError as error:
+            if error.code != 429 or attempt == 4:
+                raise
+            delay = _quota_retry_delay(error)
+            print(f"Gemini embedding quota reached; retrying in {delay:.0f}s")
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
+
+
 def embed_text(text: str) -> list[float]:
     return embed_batch([text])[0]
 
@@ -60,5 +87,9 @@ def embed_text(text: str) -> list[float]:
 def embed_batch(texts: list[str]) -> list[list[float]]:
     vectors: list[list[float]] = []
     for start in range(0, len(texts), MAX_INPUTS_PER_REQUEST):
-        vectors.extend(_request_embeddings(texts[start:start + MAX_INPUTS_PER_REQUEST]))
+        vectors.extend(
+            _request_embeddings_with_retry(
+                texts[start:start + MAX_INPUTS_PER_REQUEST]
+            )
+        )
     return vectors
