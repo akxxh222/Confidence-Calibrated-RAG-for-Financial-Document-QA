@@ -9,8 +9,9 @@ self-consistency, instead of a fixed similarity threshold.
 ```
 cc-rag/
 ├── app/
-│   ├── ingestion/        # Person A — corpus download + section-aware chunking
+│   ├── ingestion/        # Person A — corpus download + HTML→text + chunking
 │   │   ├── edgar_fetch.py
+│   │   ├── html_extract.py
 │   │   └── chunker.py
 │   ├── retrieval/        # Person B — embeddings, pgvector search, reranking
 │   │   ├── embed.py
@@ -60,9 +61,14 @@ cc-rag/
 
 ```bash
 cp .env.example .env          # fill in DB creds + LLM API key
+python -m venv .venv          # use an isolated environment
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements.txt
 docker compose up -d db       # postgres + pgvector only, for local dev
-pip install -r requirements.txt
-python scripts/init_db.py     # creates tables from db/schema.sql
-python scripts/ingest_sample.py   # pulls a couple of filings to sanity-check the pipeline
+python -m scripts.init_db     # creates tables from db/schema.sql (idempotent)
+python -m app.ingestion.edgar_fetch --tickers AAPL --forms 10-K --limit 1
+python -m app.ingestion.html_extract --input data/raw_filings --out data/clean_text
+python -m scripts.ingest_sample --file data/clean_text/<filing>.txt --company AAPL
 flask --app app.api.app run --debug
 ```

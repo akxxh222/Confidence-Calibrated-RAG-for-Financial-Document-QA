@@ -1,0 +1,18 @@
+# secrets — never bake into the image (Dockerfile does COPY . .)
+.env
+
+# local artifacts
+data/
+models/
+mlruns/
+eval/raw_run_outputs.jsonl
+eval/judged_outputs.jsonl
+eval/results_table.md
+
+# vcs / tooling
+.git
+.gitignore
+.pytest_cache/
+__pycache__/
+*.pyc
+*.egg-info/

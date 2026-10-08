@@ -1,16 +1,21 @@
 flask==3.0.3
 psycopg2-binary==2.9.9
 pgvector==0.2.5
-sentence-transformers==3.0.1
+google-genai>=2.3.0
+
 scikit-learn==1.5.1
 numpy==1.26.4
 pandas==2.2.2
-anthropic==0.34.0
+
 python-dotenv==1.0.1
+setuptools==70.2.0  # mlflow 2.15.1 imports pkg_resources on Python 3.12
 mlflow==2.15.1
+
 sec-edgar-downloader==5.0.2
+pyrate-limiter>=3.1,<4  # sec-edgar-downloader 5.0.2 uses the 3.x Limiter API
 beautifulsoup4==4.12.3
 lxml==5.2.2
+
 pytest==8.3.2
 flake8==7.1.1
 gunicorn==22.0.0

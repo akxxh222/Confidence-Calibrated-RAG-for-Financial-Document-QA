@@ -1,0 +1,1 @@
+{"question_id": "unans_001", "question_text": "What is the company's projected AI R&D spend for fiscal year 2028?", "category": "unanswerable", "ground_truth_answer": null, "ground_truth_source_chunk": null, "notes": "Placeholder — genuinely absent from any ingested filing; correct behavior is refuse, not a plausible-sounding guess."}
