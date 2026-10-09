@@ -8,9 +8,10 @@ This orchestrates the full pipeline described in Section 6 of the design doc:
 retrieval -> generation (N samples) -> self-consistency score -> calibration
 model -> answer/hedge/refuse decision.
 """
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 from app.retrieval.retriever import retrieve
+from app.generation.generate import generate_answer
 from app.generation.self_consistency import run_self_consistency
 from app.calibration.model import CalibrationModel
 from app.calibration.features import CalibrationFeatures
@@ -37,6 +38,50 @@ REFUSE_MESSAGE = (
     "reliably. This may mean the information isn't in the indexed filings, or "
     "the question's premise doesn't match what the filings show."
 )
+
+
+@app.route("/", methods=["GET"])
+def research_console():
+    return render_template("index.html")
+
+
+@app.route("/api/query", methods=["POST"])
+def query():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "a JSON question is required"}), 400
+    question = str(payload.get("question", "")).strip()
+    if not question:
+        return jsonify({"error": "question is required"}), 400
+
+    retrieval = retrieve(question)
+    if not retrieval.chunks:
+        return jsonify({
+            "question": question,
+            "answer": "No supporting passages were found in the indexed filings.",
+            "retrieval_confidence": 0.0,
+            "spread": 0.0,
+            "sources": [],
+        })
+
+    answer = generate_answer(question, retrieval.chunks)
+    sources = [
+        {
+            "chunk_id": chunk.chunk_id,
+            "document_id": chunk.doc_id,
+            "section": chunk.section,
+            "page_ref": chunk.page_ref,
+            "similarity": round(chunk.similarity, 4),
+        }
+        for chunk in retrieval.chunks
+    ]
+    return jsonify({
+        "question": question,
+        "answer": answer,
+        "retrieval_confidence": round(retrieval.top1_score, 4),
+        "spread": round(retrieval.spread, 4),
+        "sources": sources,
+    })
 
 
 @app.route("/ask", methods=["POST"])

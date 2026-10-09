@@ -74,6 +74,12 @@ python -m scripts.ingest_sample --root data/clean_text --raw_root data/raw_filin
 flask --app app.api.app run --debug
 ```
 
+Open `http://127.0.0.1:5000/` for the Filing Research Console. The page calls
+`POST /api/query`, which runs the current normal RAG path (retrieve one context
+set, generate one grounded answer, return retrieval metrics and sources).
+`POST /ask` remains the confidence-calibrated route and requires the calibration
+artifact introduced in the later milestones.
+
 Downloaded files are stored under
 `data/raw_filings/sec-edgar-filings/<ticker>/<form>/<accession>/`; both raw and
 extracted data are ignored by Git. Corpus ingestion reads fiscal periods and

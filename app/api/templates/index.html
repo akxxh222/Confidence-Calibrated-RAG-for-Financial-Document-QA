@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Research public-company SEC filings with source-grounded answers.">
+  <title>Filing Research Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Filing Research Console home">
+      <span class="brand-mark" aria-hidden="true">FR</span>
+      <span>Filing Research Console</span>
+    </a>
+    <div class="system-status" aria-live="polite">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="system-status">Checking system</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">SEC filing research</p>
+      <h1 id="page-title">Ask a precise financial question.</h1>
+      <p class="lede">
+        Search the indexed Apple and Microsoft filings. Answers are generated
+        only from retrieved filing passages and include the supporting sources.
+      </p>
+    </section>
+
+    <section class="query-panel" aria-label="Research query">
+      <form id="research-form">
+        <label for="question">Research question</label>
+        <div class="query-row">
+          <textarea id="question" name="question" rows="2" maxlength="1000"
+            placeholder="What was Microsoft's total revenue in fiscal 2026?"
+            required></textarea>
+          <button id="submit-button" type="submit">
+            <span class="button-label">Search filings</span>
+            <span class="button-progress" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+      <div class="examples" aria-label="Example questions">
+        <span>Try:</span>
+        <button type="button" class="example-question">Apple net income in fiscal 2024</button>
+        <button type="button" class="example-question">Microsoft revenue in fiscal 2026</button>
+        <button type="button" class="example-question">Apple net sales for June 2026 quarter</button>
+      </div>
+    </section>
+
+    <p id="request-status" class="request-status" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" hidden aria-labelledby="answer-title">
+      <article class="answer-card">
+        <div class="answer-heading">
+          <div>
+            <p class="eyebrow">Grounded response</p>
+            <h2 id="answer-title">Answer</h2>
+          </div>
+          <span class="result-badge">SEC filings</span>
+        </div>
+        <p id="answer-text" class="answer-text"></p>
+        <dl class="metrics" aria-label="Retrieval metrics">
+          <div>
+            <dt>Top match</dt>
+            <dd id="retrieval-score">—</dd>
+          </div>
+          <div>
+            <dt>Ranking spread</dt>
+            <dd id="spread-score">—</dd>
+          </div>
+          <div>
+            <dt>Sources</dt>
+            <dd id="source-count">—</dd>
+          </div>
+        </dl>
+      </article>
+
+      <aside class="sources-panel" aria-labelledby="sources-title">
+        <div class="sources-heading">
+          <p class="eyebrow">Retrieved evidence</p>
+          <h2 id="sources-title">Sources</h2>
+        </div>
+        <ol id="sources-list" class="sources-list"></ol>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <span>CC-RAG research prototype</span>
+    <span>Figures should be verified against the original filing.</span>
+  </footer>
+</body>
+</html>
