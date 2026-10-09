@@ -22,7 +22,12 @@ from app.retrieval.retriever import RetrievedChunk
 N_SAMPLES = int(os.environ.get("SELF_CONSISTENCY_N", 5))
 NUMERIC_TOLERANCE_PCT = 0.02  # 2% relative tolerance for "same" figure
 
-NUMBER_RE = re.compile(r"[-+]?\$?\d[\d,]*\.?\d*\s?(?:%|billion|million|B|M)?", re.I)
+NUMBER_RE = re.compile(
+    r"(?P<open>\()?\s*(?P<sign>[-+]?)\s*(?P<currency>\$?)\s*"
+    r"(?P<number>\d[\d,]*(?:\.\d+)?)\s*"
+    r"(?P<unit>billion|million|%|B|M)?\s*(?P<close>\))?",
+    re.I,
+)
 
 
 @dataclass
@@ -33,22 +38,46 @@ class SelfConsistencyResult:
 
 
 def _extract_number(text: str) -> float | None:
-    match = NUMBER_RE.search(text)
-    if not match:
-        return None
-    raw = match.group(0).lower()
-    raw = raw.replace(",", "").replace("$", "").replace("%", "").strip()
-    multiplier = 1.0
-    if "billion" in raw or raw.endswith("b"):
-        multiplier = 1e9
-        raw = raw.replace("billion", "").replace("b", "")
-    elif "million" in raw or raw.endswith("m"):
-        multiplier = 1e6
-        raw = raw.replace("million", "").replace("m", "")
-    try:
-        return float(raw.strip()) * multiplier
-    except ValueError:
-        return None
+    parsed: list[tuple[float, bool, bool]] = []
+    for match in NUMBER_RE.finditer(text):
+        try:
+            value = float(match.group("number").replace(",", ""))
+        except ValueError:
+            continue
+
+        unit = (match.group("unit") or "").lower()
+        if unit in ("billion", "b"):
+            value *= 1e9
+        elif unit in ("million", "m"):
+            value *= 1e6
+
+        if match.group("sign") == "-" or (
+            match.group("open") and match.group("close")
+        ):
+            value = -value
+
+        is_plain_year = (
+            1900 <= value <= 2100
+            and not match.group("currency")
+            and not unit
+            and not match.group("sign")
+            and not match.group("open")
+        )
+        is_explicit_figure = bool(
+            match.group("currency")
+            or unit
+            or match.group("sign")
+            or match.group("open")
+        )
+        parsed.append((value, is_plain_year, is_explicit_figure))
+
+    for value, _is_plain_year, is_explicit_figure in parsed:
+        if is_explicit_figure:
+            return value
+    for value, is_plain_year, _is_explicit_figure in parsed:
+        if not is_plain_year:
+            return value
+    return parsed[0][0] if parsed else None
 
 
 def _numeric_agreement(numbers: list[float | None]) -> float | None:
