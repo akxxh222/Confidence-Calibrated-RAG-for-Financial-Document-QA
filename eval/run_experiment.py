@@ -23,6 +23,7 @@ from app.generation.self_consistency import run_self_consistency
 from app.calibration.model import CalibrationModel
 from app.calibration.features import CalibrationFeatures
 from eval.metrics import format_metrics_table
+from eval.dataset import load_and_validate
 
 TEST_SET_DIR = Path("eval/test_set")
 RAW_OUTPUT_PATH = Path("eval/raw_run_outputs.jsonl")
@@ -30,12 +31,7 @@ JUDGED_OUTPUT_PATH = Path("eval/judged_outputs.jsonl")  # produced by human revi
 
 
 def load_test_set() -> list[dict]:
-    questions = []
-    for path in TEST_SET_DIR.glob("*.jsonl"):
-        with open(path) as f:
-            for line in f:
-                questions.append(json.loads(line))
-    return questions
+    return load_and_validate(TEST_SET_DIR)
 
 
 def run_calibrated(question: str, model: CalibrationModel) -> dict:
