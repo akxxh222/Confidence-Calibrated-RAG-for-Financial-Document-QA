@@ -34,6 +34,13 @@ def test_research_console_is_served_at_root(client):
     assert b'id="research-form"' in resp.data
 
 
+def test_source_cards_do_not_render_missing_page_placeholder(client):
+    resp = client.get("/static/app.js")
+
+    assert resp.status_code == 200
+    assert b"Page not supplied" not in resp.data
+
+
 def test_query_api_requires_nonempty_json_question(client):
     assert client.post("/api/query", json={}).status_code == 400
     assert client.post("/api/query", json={"question": "  "}).status_code == 400
