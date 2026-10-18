@@ -42,11 +42,11 @@ function renderSources(sources) {
 
     const meta = document.createElement("div");
     meta.className = "source-meta";
-    const fields = [
-      `Document ${source.document_id}`,
-      source.page_ref ? `Page ${source.page_ref}` : "Page not supplied",
-      `${percent(source.similarity)} match`,
-    ];
+    const fields = [`Document ${source.document_id}`];
+    if (source.page_ref) {
+      fields.push(`Page ${source.page_ref}`);
+    }
+    fields.push(`${percent(source.similarity)} match`);
     fields.forEach((value) => {
       const field = document.createElement("span");
       field.textContent = value;
