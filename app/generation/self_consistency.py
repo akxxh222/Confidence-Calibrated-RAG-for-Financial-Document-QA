@@ -25,7 +25,7 @@ NUMERIC_TOLERANCE_PCT = 0.02  # 2% relative tolerance for "same" figure
 NUMBER_RE = re.compile(
     r"(?P<open>\()?\s*(?P<sign>[-+]?)\s*(?P<currency>\$?)\s*"
     r"(?P<number>\d[\d,]*(?:\.\d+)?)\s*"
-    r"(?P<unit>billion|million|%|B|M)?\s*(?P<close>\))?",
+    r"(?P<unit>billion\b|million\b|%|B\b|M\b)?\s*(?P<close>\))?",
     re.I,
 )
 
@@ -103,14 +103,19 @@ def _text_agreement(samples: list[str]) -> float:
     return mean(sims) if sims else 0.0
 
 
+def score_samples(samples: list[str]) -> SelfConsistencyResult:
+    """Score already-collected samples, including resumable experiment runs."""
+    numbers = [_extract_number(sample) for sample in samples]
+    numeric_score = _numeric_agreement(numbers)
+    score = numeric_score if numeric_score is not None else _text_agreement(samples)
+    return SelfConsistencyResult(
+        samples=samples,
+        self_consistency_score=score,
+        extracted_numbers=numbers,
+    )
+
+
 def run_self_consistency(question: str, chunks: list[RetrievedChunk],
                          n: int = N_SAMPLES) -> SelfConsistencyResult:
     samples = [generate_answer(question, chunks, temperature=0.7) for _ in range(n)]
-    numbers = [_extract_number(s) for s in samples]
-
-    numeric_score = _numeric_agreement(numbers)
-    score = numeric_score if numeric_score is not None else _text_agreement(samples)
-
-    return SelfConsistencyResult(
-        samples=samples, self_consistency_score=score, extracted_numbers=numbers
-    )
+    return score_samples(samples)
