@@ -53,7 +53,7 @@ class CalibrationModel:
             return "hedge"
         return "refuse"
 
-    def save(self, name: str = "calibration_model"):
+    def save(self, name: str = "calibration_model", training_metadata=None):
         import joblib
         MODEL_DIR.mkdir(exist_ok=True)
         joblib.dump(self.clf, MODEL_DIR / f"{name}_{self.version}.joblib")
@@ -62,13 +62,25 @@ class CalibrationModel:
             "version": self.version,
             "features": FEATURE_NAMES,
             "thresholds": asdict(self.thresholds),
+            "training": training_metadata or {},
         }
-        (MODEL_DIR / f"{name}_{self.version}.json").write_text(json.dumps(meta, indent=2))
+        (MODEL_DIR / f"{name}_{self.version}.json").write_text(
+            json.dumps(meta, indent=2),
+            encoding="utf-8",
+        )
 
     @classmethod
     def load(cls, name: str = "calibration_model", version: str = "v0"):
         import joblib
-        meta = json.loads((MODEL_DIR / f"{name}_{version}.json").read_text())
+        meta = json.loads(
+            (MODEL_DIR / f"{name}_{version}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if meta["features"] != FEATURE_NAMES:
+            raise ValueError(
+                "Saved calibration feature order does not match runtime"
+            )
         instance = cls(kind=meta["kind"])
         instance.clf = joblib.load(MODEL_DIR / f"{name}_{version}.joblib")
         instance.thresholds = Thresholds(**meta["thresholds"])
