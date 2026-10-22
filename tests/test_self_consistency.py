@@ -1,4 +1,8 @@
-from app.generation.self_consistency import _extract_number, _numeric_agreement
+from app.generation.self_consistency import (
+    _extract_number,
+    _numeric_agreement,
+    score_samples,
+)
 
 
 def test_extract_plain_number():
@@ -40,6 +44,14 @@ def test_extract_prioritizes_scaled_figure_after_full_date():
     assert _extract_number(text) == 331839e6
 
 
+def test_extract_does_not_treat_company_initial_as_million_unit():
+    text = (
+        "In fiscal year 2025, Microsoft's gross margin was "
+        "$193,893 million."
+    )
+    assert _extract_number(text) == 193893e6
+
+
 def test_extract_none_when_no_number():
     assert _extract_number("Revenue grew significantly year over year.") is None
 
@@ -56,3 +68,13 @@ def test_numeric_agreement_disagreement():
 def test_numeric_agreement_insufficient_data_returns_none():
     assert _numeric_agreement([None, None]) is None
     assert _numeric_agreement([100.0]) is None
+
+
+def test_score_samples_supports_resumable_numeric_runs():
+    result = score_samples([
+        "Revenue was $1.2 billion.",
+        "Revenue was $1,200 million.",
+    ])
+
+    assert result.extracted_numbers == [1.2e9, 1.2e9]
+    assert result.self_consistency_score == 1.0
