@@ -1,0 +1,30 @@
+{
+  "kind": "logreg",
+  "version": "v0",
+  "features": [
+    "top1_score",
+    "spread",
+    "self_consistency_score"
+  ],
+  "thresholds": {
+    "answer_threshold": 0.5,
+    "hedge_threshold": 0.2
+  },
+  "training": {
+    "data_path": "eval/labeled_seed.jsonl",
+    "data_sha256": "f5e3f1beb7ee6d3126bb088f236e35d4e2b3229fe5a25ab6f4a6718ac15c7b8f",
+    "random_state": 42,
+    "row_count": 42,
+    "class_counts": {
+      "incorrect": 19,
+      "correct": 23
+    },
+    "validation_row_count": 13,
+    "validation_mean_probability": {
+      "incorrect": 0.49035324679555026,
+      "correct": 0.5132991238397411
+    },
+    "validation_auroc": 1.0,
+    "validation_brier_score": 0.23906165562716922
+  }
+}
