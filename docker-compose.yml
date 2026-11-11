@@ -22,7 +22,10 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
       - "5000:5000"
-    command: gunicorn -w 2 -b 0.0.0.0:5000 app.api.app:app
+    # Gemini generation can exceed Gunicorn's 30-second default, especially
+    # during quota retries. Keep the worker alive long enough for the API's
+    # bounded retry policy to complete and return a JSON response.
+    command: gunicorn -w 2 -b 0.0.0.0:5000 --timeout 180 app.api.app:app
 
 volumes:
   ccrag_pgdata:
