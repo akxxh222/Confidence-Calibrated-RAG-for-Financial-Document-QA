@@ -1,16 +1,44 @@
-__pycache__/
-*.pyc
-.venv/
+# Private environment and credentials (keep the sanitized template).
 .env
+.env.*
+!.env.example
+
+# Python environments, tooling, and caches.
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.log
+
+# Local assistant/editor state and OS files.
+.codex_tmp/
+.superpowers/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local corpus, backups, model experiments, and MLflow outputs.
 data/
+mlruns/
 models/*
 !models/calibration_model_v0.joblib
 !models/calibration_model_v0.json
+
+# Private planning history and generated documentation/report artifacts.
+/docs/local/
+/docs/generated/
+/reports/
+/AIML_Project_Report_CC_RAG.docx
+
+# Resumable API checkpoints and human-judged experiment outputs.
 eval/raw_run_outputs.jsonl
 eval/judged_outputs.jsonl
-eval/results_table.md
 eval/calibration_seed_runs.jsonl
 eval/calibration_seed_progress.json
-mlruns/
-.pytest_cache/
-*.egg-info/
+# Legacy location; new Markdown reports use docs/generated/.
+eval/results_table.md
