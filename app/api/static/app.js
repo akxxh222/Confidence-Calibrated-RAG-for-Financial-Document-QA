@@ -4,9 +4,13 @@ const submitButton = document.querySelector("#submit-button");
 const requestStatus = document.querySelector("#request-status");
 const result = document.querySelector("#result");
 const answerText = document.querySelector("#answer-text");
+const answerTitle = document.querySelector("#answer-title");
+const confidenceScore = document.querySelector("#confidence-score");
 const retrievalScore = document.querySelector("#retrieval-score");
 const spreadScore = document.querySelector("#spread-score");
+const consistencyScore = document.querySelector("#consistency-score");
 const sourceCount = document.querySelector("#source-count");
+const resultBadge = document.querySelector("#result-badge");
 const sourcesList = document.querySelector("#sources-list");
 const systemStatus = document.querySelector("#system-status");
 const statusDot = document.querySelector("#status-dot");
@@ -43,9 +47,7 @@ function renderSources(sources) {
     const meta = document.createElement("div");
     meta.className = "source-meta";
     const fields = [`Document ${source.document_id}`];
-    if (source.page_ref) {
-      fields.push(`Page ${source.page_ref}`);
-    }
+    if (source.page_ref) fields.push(`Page ${source.page_ref}`);
     fields.push(`${percent(source.similarity)} match`);
     fields.forEach((value) => {
       const field = document.createElement("span");
@@ -62,23 +64,40 @@ async function submitQuestion(question) {
   setLoading(true);
   result.hidden = true;
   requestStatus.classList.remove("error");
-  requestStatus.textContent = "Searching filings and preparing a grounded answer…";
+  requestStatus.textContent = "Searching filings and evaluating confidence…";
 
   try {
-    const response = await fetch("/api/query", {
+    const response = await fetch("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
     });
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error(
+        response.ok
+          ? "The server returned an unexpected response."
+          : `The server could not complete the request (HTTP ${response.status}).`,
+      );
+    }
     const payload = await response.json();
     if (!response.ok) {
       throw new Error(payload.error || "The request could not be completed.");
     }
 
     answerText.textContent = payload.answer;
+    confidenceScore.textContent = percent(payload.confidence_score);
     retrievalScore.textContent = percent(payload.retrieval_confidence);
     spreadScore.textContent = percent(payload.spread);
+    consistencyScore.textContent = percent(payload.self_consistency_score);
     sourceCount.textContent = String(payload.sources.length);
+
+    const labels = { answer: "Answer", hedge: "Hedge", refuse: "Refuse" };
+    resultBadge.textContent = labels[payload.mode] || "SEC filings";
+    answerTitle.textContent = payload.mode === "hedge"
+      ? "Qualified answer"
+      : payload.mode === "refuse" ? "Cannot answer" : "Answer";
+
     renderSources(payload.sources);
     result.hidden = false;
     requestStatus.textContent = "";
@@ -94,9 +113,7 @@ async function submitQuestion(question) {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = questionInput.value.trim();
-  if (question) {
-    submitQuestion(question);
-  }
+  if (question) submitQuestion(question);
 });
 
 document.querySelectorAll(".example-question").forEach((button) => {
