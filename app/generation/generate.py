@@ -7,7 +7,7 @@ self-consistency sampling depends on per-call temperature control. Swapping
 to client.interactions.create later is a contained change if desired.
 
 Env vars used:
-  GEMINI_MODEL     - model id (default: gemini-3.8-flash)
+  GEMINI_MODEL     - model id (default: gemini-3.5-flash)
   GEMINI_API_KEY   - read from the environment by genai.Client()
   GEMINI_THINKING_LEVEL - reasoning level (default: low for concise QA)
   GENERATION_MAX_OUTPUT_TOKENS - answer + thinking ceiling (default: 1000)
@@ -18,6 +18,7 @@ API key (unit tests / CI import this chain without one).
 import os
 import time
 from functools import lru_cache
+from threading import Lock
 
 from google import genai
 from google.genai import types
@@ -25,18 +26,36 @@ from google.genai.errors import ClientError, ServerError
 
 from app.retrieval.retriever import RetrievedChunk
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 THINKING_LEVEL = os.environ.get("GEMINI_THINKING_LEVEL", "low")
 MAX_OUTPUT_TOKENS = int(os.environ.get("GENERATION_MAX_OUTPUT_TOKENS", "1000"))
+HTTP_TIMEOUT_MS = int(os.environ.get("GEMINI_HTTP_TIMEOUT_MS", "20000"))
+MAX_ATTEMPTS = int(os.environ.get("GEMINI_MAX_ATTEMPTS", "2"))
 MAX_RETRY_DELAY_SECONDS = 60.0
 INSUFFICIENT_CONTEXT_RESPONSE = (
     "The provided context is insufficient to answer this question."
 )
+_CLIENT_LOCK = Lock()
 
 
 @lru_cache(maxsize=1)
+def _create_client() -> genai.Client:
+    # The SDK otherwise retries transient failures internally up to five times.
+    # Keep one bounded network attempt here and let _generate_content apply the
+    # project's visible, capped retry policy instead.
+    return genai.Client(
+        http_options=types.HttpOptions(
+            timeout=HTTP_TIMEOUT_MS,
+            retry_options=types.HttpRetryOptions(attempts=1),
+        )
+    )
+
+
 def get_client() -> genai.Client:
-    return genai.Client()
+    # lru_cache may evaluate a cache miss concurrently. Serialize construction
+    # so duplicate SDK clients cannot close a shared transport on disposal.
+    with _CLIENT_LOCK:
+        return _create_client()
 
 
 PROMPT_TEMPLATE = """You are answering questions about a company's SEC filings \
@@ -79,7 +98,7 @@ def _retry_delay(error: ClientError | ServerError, attempt: int) -> float:
 
 
 def _generate_content(prompt: str, temperature: float):
-    for attempt in range(5):
+    for attempt in range(MAX_ATTEMPTS):
         try:
             return get_client().models.generate_content(
                 model=MODEL,
@@ -93,14 +112,17 @@ def _generate_content(prompt: str, temperature: float):
                 ),
             )
         except (ClientError, ServerError) as error:
-            if error.code not in (429, 503) or attempt == 4:
+            if (
+                error.code not in (429, 500, 502, 503, 504)
+                or attempt == MAX_ATTEMPTS - 1
+            ):
                 raise
             delay = _retry_delay(error, attempt)
             if delay > MAX_RETRY_DELAY_SECONDS:
                 raise
             print(f"Gemini generation unavailable; retrying in {delay:.0f}s")
             time.sleep(delay)
-    raise RuntimeError("unreachable")
+    raise RuntimeError("generation attempts exhausted")
 
 
 def generate_answer(question: str, chunks: list[RetrievedChunk], temperature: float = 0.3) -> str:
