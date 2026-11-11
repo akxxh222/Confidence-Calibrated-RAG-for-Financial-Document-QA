@@ -8,6 +8,7 @@ class AskResponse:
     answer: str
     confidence_score: float         # P(correct) from calibration model
     retrieval_confidence: float
+    spread: float
     self_consistency_score: float
     sources: list[dict]
 
