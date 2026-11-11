@@ -1,4 +1,9 @@
-# Milestone 3 Independent Review
+# Evaluation dataset review
+
+Run commands from the repository root. The datasets remain in
+[eval/test_set](../eval/test_set); the review guide lives here so documentation
+is maintained in one place. See [Evaluation](evaluation.md) for the experiment
+workflow and the distinction between calibration and final evaluation data.
 
 Every question needs review by a team member other than the person who wrote
 its label. Do not mark `independent_verified` as `true` based only on the
