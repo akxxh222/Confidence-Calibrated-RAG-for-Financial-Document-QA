@@ -35,7 +35,7 @@
         <label for="question">Research question</label>
         <div class="query-row">
           <textarea id="question" name="question" rows="2" maxlength="1000"
-            placeholder="What was Microsoft's total revenue in fiscal 2026?"
+            placeholder="What was Microsoft's total revenue in fiscal 2025?"
             required></textarea>
           <button id="submit-button" type="submit">
             <span class="button-label">Search filings</span>
@@ -46,7 +46,7 @@
       <div class="examples" aria-label="Example questions">
         <span>Try:</span>
         <button type="button" class="example-question">Apple net income in fiscal 2024</button>
-        <button type="button" class="example-question">Microsoft revenue in fiscal 2026</button>
+        <button type="button" class="example-question">Microsoft revenue in fiscal 2025</button>
         <button type="button" class="example-question">Apple net sales for June 2026 quarter</button>
       </div>
     </section>
@@ -60,22 +60,15 @@
             <p class="eyebrow">Grounded response</p>
             <h2 id="answer-title">Answer</h2>
           </div>
-          <span class="result-badge">SEC filings</span>
+          <span id="result-badge" class="result-badge">SEC filings</span>
         </div>
         <p id="answer-text" class="answer-text"></p>
-        <dl class="metrics" aria-label="Retrieval metrics">
-          <div>
-            <dt>Top match</dt>
-            <dd id="retrieval-score">—</dd>
-          </div>
-          <div>
-            <dt>Ranking spread</dt>
-            <dd id="spread-score">—</dd>
-          </div>
-          <div>
-            <dt>Sources</dt>
-            <dd id="source-count">—</dd>
-          </div>
+        <dl class="metrics" aria-label="Confidence and retrieval metrics">
+          <div><dt>Answer confidence</dt><dd id="confidence-score">—</dd></div>
+          <div><dt>Top match</dt><dd id="retrieval-score">—</dd></div>
+          <div><dt>Ranking spread</dt><dd id="spread-score">—</dd></div>
+          <div><dt>Self consistency</dt><dd id="consistency-score">—</dd></div>
+          <div><dt>Sources</dt><dd id="source-count">—</dd></div>
         </dl>
       </article>
 
