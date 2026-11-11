@@ -1,5 +1,5 @@
 """
-The core novel mechanism (Section 8 of the design doc): a small classifier
+A small correctness classifier (see docs/calibration.md)
 mapping (retrieval_confidence, spread, self_consistency_score) -> P(correct),
 which is then thresholded into answer / hedge / refuse.
 
