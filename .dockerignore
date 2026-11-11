@@ -1,18 +1,39 @@
-# secrets — never bake into the image (Dockerfile does COPY . .)
+# Private environment files must never enter COPY . .
 .env
+.env.*
+!.env.example
 
-# local artifacts
+# Data and development artifacts are not part of the runtime image.
 data/
-models/
 mlruns/
 eval/raw_run_outputs.jsonl
 eval/judged_outputs.jsonl
 eval/results_table.md
+eval/calibration_seed_runs.jsonl
+eval/calibration_seed_progress.json
+.venv/
+.codex_tmp/
+.superpowers/
+.idea/
+docs/
+reports/
+*.docx
 
-# vcs / tooling
+# Repository metadata and generated tooling files.
 .git
 .gitignore
 .pytest_cache/
+.ruff_cache/
 __pycache__/
-*.pyc
+*.py[cod]
 *.egg-info/
+.coverage*
+htmlcov/
+*.log
+.DS_Store
+Thumbs.db
+
+# Only the approved model pair is needed by /ask.
+models/*
+!models/calibration_model_v0.joblib
+!models/calibration_model_v0.json
