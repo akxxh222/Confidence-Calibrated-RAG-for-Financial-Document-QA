@@ -1,87 +1,38 @@
-# CC-RAG: Confidence-Calibrated RAG for Financial Documents
+# CC-RAG
 
-Retrieval-augmented QA over SEC filings that decides to **answer / hedge / refuse**
-based on a learned combination of retrieval confidence and generation
-self-consistency, instead of a fixed similarity threshold.
+Confidence-calibrated question answering over SEC financial filings.
+The application retrieves filing passages, generates answers with Gemini,
+and uses retrieval and self-consistency signals to answer, hedge, or refuse.
 
-## Repo layout
+## Run locally
 
-```
-cc-rag/
-├── app/
-│   ├── ingestion/        # Person A — corpus download + HTML→text + chunking
-│   │   ├── edgar_fetch.py
-│   │   ├── html_extract.py
-│   │   └── chunker.py
-│   ├── retrieval/        # Person B — embeddings, pgvector search, reranking
-│   │   ├── embed.py
-│   │   └── retriever.py
-│   ├── generation/       # Person B — LLM calls + self-consistency sampling
-│   │   ├── generate.py
-│   │   └── self_consistency.py
-│   ├── calibration/      # Person B — the core novel mechanism
-│   │   ├── features.py
-│   │   ├── model.py
-│   │   └── train.py
-│   └── api/              # Person A — Flask REST layer
-│       ├── app.py
-│       └── schemas.py
-├── db/
-│   ├── schema.sql
-│   └── connection.py
-├── eval/                 # Person C — test set + comparison experiment
-│   ├── test_set/
-│   │   ├── answerable.jsonl
-│   │   ├── false_premise.jsonl
-│   │   └── unanswerable.jsonl
-│   ├── baselines.py
-│   ├── run_experiment.py
-│   └── metrics.py
-├── tests/                # CI unit tests
-├── scripts/               # one-off setup scripts
-├── .github/workflows/ci.yml
-├── docker-compose.yml
-├── requirements.txt
-└── .env.example
+Install Docker Desktop with Compose. Create `.env` from `.env.example` if it
+does not exist, then set your Gemini key and matching database credentials.
+
+```powershell
+docker compose up -d --build
 ```
 
-## Build order (matches the 4-week plan)
+Open [localhost:5000](http://localhost:5000). A fresh clone starts with an empty
+database: follow [Getting started](docs/getting-started.md) to ingest filings
+before asking questions. An existing local database is kept in a Docker volume.
 
-1. **Ingestion → Storage → Retrieval** (Week 1) — get raw text into pgvector and
-   a naive top-k search working end to end before touching calibration at all.
-2. **Generation + self-consistency + calibration v0** (Week 2) — wire in the LLM,
-   sample N answers, compute agreement, train a first-pass calibration model on
-   a small hand-labeled seed set.
-3. **Eval test set + comparison experiment** (Week 3) — the part that makes this
-   a paper, not a demo. Build the 3-category set, run all three system variants,
-   compute hallucination-rate/coverage with bootstrap CIs.
-4. **Ablation + polish + writeup** (Week 4).
+## Start here
 
-## Local dev
+| Need | Guide |
+| --- | --- |
+| First day: install, ingest, run, verify | [Getting started](docs/getting-started.md) |
+| Locate code and understand a request | [Architecture](docs/architecture.md) |
+| Make and review a change | [Development](docs/development.md) |
+| Configuration, Docker, errors, database recovery | [Operations](docs/operations.md) |
+| Training data, saved classifier, thresholds | [Calibration](docs/calibration.md) |
+| Datasets and comparison experiment | [Evaluation](docs/evaluation.md) |
 
-```bash
-cp .env.example .env          # fill in DB creds + LLM API key
-python -m venv .venv          # use an isolated environment
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
-# macOS/Linux: source .venv/bin/activate
-python -m pip install -r requirements.txt
-docker compose up -d db       # postgres + pgvector only, for local dev
-python -m scripts.init_db     # creates tables from db/schema.sql (idempotent)
-python -m app.ingestion.edgar_fetch --tickers AAPL MSFT --forms 10-K --limit 2
-python -m app.ingestion.edgar_fetch --tickers AAPL MSFT --forms 10-Q --limit 3
-python -m app.ingestion.html_extract --input data/raw_filings --out data/clean_text
-python -m scripts.ingest_sample --root data/clean_text --raw_root data/raw_filings
-flask --app app.api.app run --debug
-```
+The [documentation index](docs/README.md) lists all maintained guides.
+Application code lives in `app/`, SQL in `db/`, evaluation code/data in `eval/`,
+setup commands in `scripts/`, and automated checks in `tests/`.
 
-Open `http://127.0.0.1:5000/` for the Filing Research Console. The page calls
-`POST /api/query`, which runs the current normal RAG path (retrieve one context
-set, generate one grounded answer, return retrieval metrics and sources).
-`POST /ask` remains the confidence-calibrated route and requires the calibration
-artifact introduced in the later milestones.
-
-Downloaded files are stored under
-`data/raw_filings/sec-edgar-filings/<ticker>/<form>/<accession>/`; both raw and
-extracted data are ignored by Git. Corpus ingestion reads fiscal periods and
-registrant CIKs from `full-submission.txt`, stores canonical SEC filing URLs,
-and safely skips source URLs that are already in the database.
+The current runtime uses Gemini 3.5 Flash and five generations in parallel
+batches of up to three. Confidence scores come from a small development-seed
+classifier trained with an earlier generation model; see the
+[calibration limitations](docs/calibration.md#current-artifacts-and-configuration).
