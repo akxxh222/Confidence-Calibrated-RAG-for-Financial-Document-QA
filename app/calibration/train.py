@@ -1,10 +1,10 @@
 """
 Trains the calibration model on labeled (features -> was_correct) rows.
 
-Input: a CSV/JSONL with columns matching FEATURE_NAMES plus `label`
+Input: JSONL with fields matching FEATURE_NAMES plus `label`
 (1 = answer was correct when checked against ground truth, 0 = not).
-This comes from hand-verifying a sample of generated answers per
-Section 8/10 of the design doc — there is no way to skip this step.
+This comes from reviewing generated answers against filing evidence using
+the labeling protocol in docs/calibration.md.
 
 Usage:
     python -m app.calibration.train --data eval/labeled_seed.jsonl --kind logreg
@@ -64,9 +64,9 @@ def tune_thresholds(model: CalibrationModel, X_val, y_val) -> Thresholds:
     """
     Sweeps threshold pairs on the validation split to pick the pair that
     minimizes hallucination rate on 'answer'-mode predictions while keeping
-    coverage reasonable. This is a starting heuristic — Section 12's full
-    experiment is where thresholds get properly validated against the
-    3-category eval set, not just this seed split.
+    coverage reasonable. This is a development-only selection heuristic.
+    Freeze the chosen thresholds before measuring performance on the separate
+    final evaluation set; see docs/calibration.md and docs/evaluation.md.
     """
     probs = model.predict_proba(X_val)
     best = Thresholds()
