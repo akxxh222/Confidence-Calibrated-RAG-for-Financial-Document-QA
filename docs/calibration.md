@@ -1,5 +1,43 @@
 # Calibration Seed Protocol
 
+## Current artifacts and configuration
+
+The reviewed development dataset is [eval/labeled_seed.jsonl](../eval/labeled_seed.jsonl).
+The classifier is [models/calibration_model_v0.joblib](../models/calibration_model_v0.joblib);
+its [JSON metadata](../models/calibration_model_v0.json) records feature order,
+thresholds, training data hash, and validation results. The joblib file is a
+small correctness classifier; Gemini's generation weights are hosted by Google.
+
+The seed has 42 rows: 23 labeled correct and 19 labeled incorrect. The saved
+model uses a stratified 29-row training split and 13-row validation split.
+Its stored answer threshold is 0.50 and hedge threshold is 0.20. These values
+override the fallback defaults in the Python class when the artifact loads.
+
+The feature vector is `[top1_score, spread, self_consistency_score]`. Logistic
+regression estimates `p = 1 / (1 + exp(-(w dot x + b)))`. Routing is:
+
+- `p >= 0.50`: answer;
+- `0.20 <= p < 0.50`: hedge, adding a qualification to the generated answer;
+- `p < 0.20`: refuse.
+
+`app/calibration/train.py` searches candidate threshold pairs on development
+validation data. It scores each pair with
+`0.65 * answer_precision + 0.25 * answer_coverage + 0.10 * routing_balanced_accuracy`.
+Answer candidates start at 0.50 and advance by 0.05; hedge candidates start at
+0.20 and remain below the answer threshold. The final evaluation set is never
+used for fitting or threshold selection.
+
+The saved validation AUROC is 1.0 and Brier score is about 0.239, on only 13
+validation rows. Mean probabilities are about 0.513 for correct and 0.490 for
+incorrect rows, so these results do not establish strong probability calibration.
+The seed was collected with `gemini-3.8-flash`; runtime now uses
+`gemini-3.5-flash`. Recollect and review development generations, then revalidate
+the classifier before treating its probabilities as validated for the new model.
+Do not alter historical model provenance to match the runtime configuration.
+
+All commands below run from the repository root, using the local Python
+environment described in [Getting started](getting-started.md).
+
 The calibration seed is development data. It must remain separate from the
 75-question final evaluation set in `eval/test_set`.
 
