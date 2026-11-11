@@ -1,6 +1,6 @@
 """
 Top-k similarity search against pgvector, plus the retrieval-confidence
-signals used downstream by the calibration model (Section 8 of the design doc):
+signals used downstream by the calibration model (see docs/architecture.md):
 
   - top1_score:   cosine similarity of the best-matching chunk
   - spread:       top1_score - top3_score (large gap => one clear winner;
@@ -75,7 +75,7 @@ def retrieve(query: str, top_k: int = TOP_K_DEFAULT) -> RetrievalResult:
     return RetrievalResult(chunks=chunks, top1_score=top1, spread=top1 - top3)
 
 
-# --- Optional cross-encoder reranking stretch goal (Section 5) ---
+# Optional future cross-encoder reranking; not part of the active pipeline.
 # from sentence_transformers import CrossEncoder
 # _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 #
