@@ -1,5 +1,5 @@
 """
-Metrics for the core comparison table (Section 12): per-category
+Metrics for the comparison table (see docs/evaluation.md): per-category
 hallucination rate and coverage rate, each with a bootstrap 95% CI.
 
 Definitions used here:
@@ -53,7 +53,7 @@ def compute_category_metrics(results: list[dict]) -> dict:
 def format_metrics_table(all_results: dict[str, dict[str, list[dict]]]) -> str:
     """
     all_results: {variant_name: {category: [result_dict, ...]}}
-    Produces a markdown table matching Section 12's layout.
+    Produces the Markdown comparison table described in docs/evaluation.md.
     """
     lines = ["| Category | Variant | Coverage (95% CI) | Hallucination Rate (95% CI) | n |",
              "|---|---|---|---|---|"]
