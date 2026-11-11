@@ -1,13 +1,13 @@
 """
 Runs all three system variants (always_answer, fixed_threshold, calibrated)
-against the hand-verified 3-category test set and produces the Section 12
-comparison table.
+against the 3-category test set and produces the comparison table described
+in docs/evaluation.md. Independent dataset review is tracked separately.
 
 This script does NOT auto-judge hallucination — that requires a human (or a
 carefully-designed, separately-validated LLM-judge you report on explicitly)
 comparing the generated answer to ground_truth_answer. This script's job is
-to run the systems, log confidence signals, and save results to eval_results
-for that judgment pass, then reload judged results to compute the table.
+to run the systems, log confidence signals, and save JSONL results for that
+judgment pass, then reload judged results to compute the Markdown table.
 
 Usage:
     python -m eval.run_experiment --stage generate   # run systems, save raw outputs
@@ -28,6 +28,7 @@ from eval.dataset import load_and_validate
 TEST_SET_DIR = Path("eval/test_set")
 RAW_OUTPUT_PATH = Path("eval/raw_run_outputs.jsonl")
 JUDGED_OUTPUT_PATH = Path("eval/judged_outputs.jsonl")  # produced by human review
+REPORT_OUTPUT_PATH = Path("docs/generated/results_table.md")
 
 
 def load_test_set() -> list[dict]:
@@ -97,8 +98,9 @@ def report_stage():
 
     table = format_metrics_table(by_variant_category)
     print(table)
-    Path("eval/results_table.md").write_text(table)
-    print("\nSaved to eval/results_table.md")
+    REPORT_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_OUTPUT_PATH.write_text(table, encoding="utf-8")
+    print(f"\nSaved to {REPORT_OUTPUT_PATH}")
 
 
 if __name__ == "__main__":
