@@ -1,7 +1,7 @@
 """
 Section-aware chunking for 10-K / 10-Q filings.
 
-Design decision (per Section 5/7 of the system design doc): naive fixed-size
+Design decision (see docs/architecture.md): naive fixed-size
 chunking splits tables and financial statements mid-sentence, which directly
 degrades retrieval-confidence quality later on. Instead we first split on
 known Item/section boundaries, then apply a secondary size-based split only
