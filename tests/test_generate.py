@@ -1,4 +1,6 @@
 from types import SimpleNamespace
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 from google.genai.errors import ClientError, ServerError
 
@@ -8,6 +10,34 @@ from app.generation.generate import (
     build_prompt,
 )
 from app.retrieval.retriever import RetrievedChunk
+
+
+def test_parallel_generations_initialize_only_one_client(monkeypatch):
+    entered = Event()
+    release = Event()
+    clients = []
+
+    def create_client(**_kwargs):
+        client = SimpleNamespace()
+        clients.append(client)
+        entered.set()
+        assert release.wait(timeout=5)
+        return client
+
+    generate._create_client.cache_clear()
+    monkeypatch.setattr(generate.genai, "Client", create_client)
+    try:
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            pending = [pool.submit(generate.get_client) for _ in range(3)]
+            try:
+                assert entered.wait(timeout=5)
+            finally:
+                release.set()
+            results = [future.result() for future in pending]
+        assert len(clients) == 1
+        assert all(client is clients[0] for client in results)
+    finally:
+        generate._create_client.cache_clear()
 
 
 def test_prompt_requires_canonical_insufficient_context_response():
