@@ -1,5 +1,5 @@
 """
-The two baselines the calibrated system is compared against (Section 12).
+The two baselines compared with the calibrated system (see docs/evaluation.md).
 
 always_answer:   never refuses, never hedges — just returns the top generation.
 fixed_threshold: single global similarity cutoff on retrieval.top1_score only,
